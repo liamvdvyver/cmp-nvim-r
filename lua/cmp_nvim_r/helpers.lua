@@ -11,10 +11,10 @@ Pm = function(v)
 end
 
 Pt = function(node, bufnr)
-    P(ts.query.get_node_text(node, bufnr))
+    P(ts.query.get_node_text(node, 1))
 end
 
---- Tree navigation and general {{{
+-- Tree navigation and general {{{
 
 -- Get parent of node with root as parent
 local get_branch
@@ -104,6 +104,73 @@ end
 
 -- Functions and arguments {{{
 
+local get_parent_calls -- only care about functions with data arguments
+get_parent_calls = function(node, parent, bufnr)
+    local calls = {}
+    local parents = {}
+    local outermost = nil
+    local innermost = nil
+
+    -- get functions with possible data arguments in parents
+    for _, captures, _ in queries.data_arg:iter_matches(parent, bufnr) do
+        table.insert(calls, captures[3])
+    end
+
+    -- get parents
+    for i = 1, #calls do
+        local is_parent = ts_utils.is_parent(calls[i], node)
+        if is_parent then
+            table.insert(parents, calls[i])
+        end
+    end
+
+    -- remove duplicate
+    for i = #parents, 1, -1 do
+        for j = 1, #parents do
+            if i ~= j and parents[i] == parents[j] then
+                table.remove(parents, i)
+            end
+        end
+    end
+
+    -- find innermost and outermost calls
+    for i = #parents, 1, -1 do
+        local is_innermost = true
+        local is_outermost = true
+        for j = 1, #parents do
+            if i == j then goto continue
+            elseif ts_utils.is_parent(parents[i], parents[j]) then
+                is_innermost = false
+            elseif ts_utils.is_parent(parents[j], parents[i]) then
+                is_outermost = false
+            end
+            ::continue::
+        end
+        if is_innermost then innermost = parents[i] end
+        if is_outermost then outermost = parents[i] end
+    end
+
+    return {raw = calls, parents = parents, innermost = innermost, outermost = outermost}
+end
+
+local get_call_fields
+get_call_fields = function(node)
+    local ret = {}
+    local func_node = node:field("function")[1]
+
+    if func_node:type() == "identifier" then
+        ret = {call = node, fun = func_node}
+    elseif func_node:type() == "namespace_get" then
+        ret = {
+            call = node,
+            fun = func_node:field("function")[1],
+            pkg = func_node:field("namespace")[1]
+        }
+    end
+
+    return ret
+end
+
 local get_parent_function
 get_parent_function = function(node)
     if node:type() == "call" then
@@ -150,9 +217,11 @@ local M = {
     is_in_pipeline = is_in_pipeline,
     get_pipelines = get_pipelines,
     get_pipeline_source = get_pipeline_source,
-    get_parent_function = get_parent_function,
+    get_call_fields = get_call_fields,
     is_in_function = is_in_function,
-    get_data_args = get_data_args
+    get_data_args = get_data_args,
+    get_parent_calls = get_parent_calls,
+    get_parent_function = get_parent_function
 }
 
 return M

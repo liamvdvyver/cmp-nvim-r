@@ -34,7 +34,7 @@ local M = function(request)
     then
         local parent_call = helpers.get_parent_function(req_node)
         local pipelines = helpers.get_pipelines(req_node, branch, request.context.bufnr)
-        local pipe_source = helpers.get_pipeline_source(pipelines.outermost)
+        local pipe_source = helpers.get_pipeline_source(pipelines.outermost) -- TODO: handle call as source by drilling down
         resp = {
             pkg  = text(parent_call.pkg),
             fnm  = text(parent_call.fun),
@@ -42,7 +42,9 @@ local M = function(request)
             listdf = true
         }
     elseif helpers.is_in_function(req_node) then
-        local parent_call = helpers.get_parent_function(req_node)
+        -- this block throws errors but does a good job
+        -- TODO: check if dataframes exist and iterate outwards from inner call
+        local parent_call = helpers.get_call_fields(helpers.get_parent_calls(req_node, branch, request.context.bufnr).outermost)
         local data_arg = helpers.get_data_args(parent_call.call, request.context.bufnr)
         resp = {
             pkg  = text(parent_call.pkg),
@@ -51,6 +53,19 @@ local M = function(request)
             listdf = true,
             test = data_arg,
         }
+
+        -- otherwise, look at parents of current call
+        if not resp.firstobj then
+            local parent_call = helpers.get_parent_function(req_node)
+            local data_arg = helpers.get_data_args(parent_call.call, request.context.bufnr)
+            resp = {
+                pkg  = text(parent_call.pkg),
+                fnm  = text(parent_call.fun),
+                firstobj = text(data_arg[1]),
+                listdf = true,
+                test = data_arg,
+            }
+        end
     end
 
     -- for debugging, remove

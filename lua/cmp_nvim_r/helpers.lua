@@ -160,7 +160,7 @@ get_call_fields = function(node)
 
     if func_node:type() == "identifier" then
         ret = {call = node, fun = func_node}
-    elseif func_node:type() == "namespace_get" then
+    elseif func_node:type() == "namespace_get" or func_node:type() == "namespace_get_internal" then
         ret = {
             call = node,
             fun = func_node:field("function")[1],

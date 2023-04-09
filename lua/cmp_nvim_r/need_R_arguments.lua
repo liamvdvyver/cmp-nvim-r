@@ -1,4 +1,4 @@
-local M = function(request)
+return function(request)
     local resp = {
         pkg = nil,
         fnm = nil,
@@ -78,5 +78,3 @@ local M = function(request)
     Resp = resp
     return resp
 end
-
-return M

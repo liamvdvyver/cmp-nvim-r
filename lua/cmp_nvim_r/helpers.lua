@@ -2,6 +2,8 @@ local ts = vim.treesitter
 local ts_utils = require"nvim-treesitter.ts_utils"
 local queries = require"cmp_nvim_r.queries"
 
+M = {}
+
 P = function(v)
     print(vim.inspect(v))
 end
@@ -17,15 +19,14 @@ end
 -- Tree navigation and general {{{
 
 -- Get parent of node with root as parent
-local get_branch
-get_branch = function(node)
+M.get_branch = function(node)
     if node:type() == "program" then
         return node
     end
     if node:parent():type() == "program" then
         return node
     else
-      return get_branch(node:parent())
+      return M.get_branch(node:parent())
     end
 end
 
@@ -34,8 +35,7 @@ end
 -- Pipelines {{{
 
 -- Check if node is in pipeline
-local is_in_pipeline
-is_in_pipeline = function(node, parent, bufnr)
+M.is_in_pipeline = function(node, parent, bufnr)
     for _, captures, _ in queries.pipeline:iter_matches(parent, bufnr) do
         if ts_utils.is_parent(captures[2], node) then return true end
     end
@@ -44,8 +44,7 @@ end
 
 -- Find all pipelines containing node
 -- Identify outermost and innermost pipelines
-local get_pipelines
-get_pipelines = function(node, parent, bufnr)
+M.get_pipelines = function(node, parent, bufnr)
     local pipes = {}
     local parents = {}
     local innermost = nil
@@ -91,11 +90,10 @@ get_pipelines = function(node, parent, bufnr)
 end
 
 -- Get leftmost object in a pipeline
-local get_pipeline_source
-get_pipeline_source = function(node)
+M.get_pipeline_source = function(node)
     local left = node:field("left")
     if #left > 1 then return nil, "Multiple children named left:"
-    elseif left[1] then return get_pipeline_source(left[1])
+    elseif left[1] then return M.get_pipeline_source(left[1])
     else return node
     end
 end
@@ -104,8 +102,7 @@ end
 
 -- Functions and arguments {{{
 
-local get_parent_calls -- only care about functions with data arguments
-get_parent_calls = function(node, parent, bufnr)
+M.get_parent_calls = function(node, parent, bufnr) -- only care about functions with data arguments
     local calls = {}
     local parents = {}
     local outermost = nil
@@ -153,8 +150,7 @@ get_parent_calls = function(node, parent, bufnr)
     return {raw = calls, parents = parents, innermost = innermost, outermost = outermost}
 end
 
-local get_call_fields
-get_call_fields = function(node)
+M.get_call_fields = function(node)
     local ret = {}
     local func_node = node:field("function")[1]
 
@@ -171,8 +167,7 @@ get_call_fields = function(node)
     return ret
 end
 
-local get_parent_function
-get_parent_function = function(node)
+M.get_parent_function = function(node)
     if node:type() == "call" then
         local ret = {}
         local func_node = node:field("function")[1]
@@ -189,20 +184,18 @@ get_parent_function = function(node)
 
         return ret
 
-    elseif node:parent() then return get_parent_function(node:parent())
+    elseif node:parent() then return M.get_parent_function(node:parent())
     end
 end
 
-local is_in_function
-is_in_function = function(node)
+M.is_in_function = function(node)
     if not node:parent() then return false
     elseif node:type() == "call" then return true
-    else return is_in_function(node:parent())
+    else return M.is_in_function(node:parent())
     end
 end
 
-local get_data_args
-get_data_args = function(node, bufnr)
+M.get_data_args = function(node, bufnr)
     local ret = {}
     for _, captures, _ in queries.data_arg:iter_matches(node, bufnr) do
         if captures[3] == node then table.insert(ret, captures[2]) end
@@ -211,17 +204,5 @@ get_data_args = function(node, bufnr)
 end
 
 --- }}}
-
-local M = {
-    get_branch = get_branch,
-    is_in_pipeline = is_in_pipeline,
-    get_pipelines = get_pipelines,
-    get_pipeline_source = get_pipeline_source,
-    get_call_fields = get_call_fields,
-    is_in_function = is_in_function,
-    get_data_args = get_data_args,
-    get_parent_calls = get_parent_calls,
-    get_parent_function = get_parent_function
-}
 
 return M

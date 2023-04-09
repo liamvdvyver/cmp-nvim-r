@@ -11,7 +11,7 @@ Pm = function(v)
 end
 
 Pt = function(node, bufnr)
-    P(ts.query.get_node_text(node, 1))
+    P(ts.get_node_text(node, 1))
 end
 
 -- Tree navigation and general {{{

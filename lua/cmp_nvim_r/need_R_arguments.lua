@@ -12,7 +12,13 @@ local M = function(request)
     local helpers = require"cmp_nvim_r.helpers"
 
     -- Setup syntax tree
-    local req_node = ts.get_node_at_pos(request.context.bufnr, request.context.cursor.line, request.context.cursor.character - 1, {}) -- node to left of cursor in insert mode
+    local req_node = ts.get_node({
+        bufnr = request.context.bufnr,
+        pos = {
+            request.context.cursor.line,
+            request.context.cursor.character - 1
+        }
+    }) -- node to left of cursor in insert mode
     -- local language_tree = ts.get_parser(request.context.bufnr, "r")
     -- local syntax_tree = language_tree:parse()
     -- local root = syntax_tree[1]:root()
@@ -23,7 +29,7 @@ local M = function(request)
     -- Move to helper?
     local text = function(node)
         if node then
-            return ts.query.get_node_text(node, request.context.bufnr)
+            return ts.get_node_text(node, request.context.bufnr)
         else return nil end
     end
 

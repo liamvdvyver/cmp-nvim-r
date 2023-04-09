@@ -1,5 +1,5 @@
 local M = {
-    data_arg = vim.treesitter.parse_query('r', [[
+    data_arg = vim.treesitter.query.parse('r', [[
         (call
             arguments: [
                 (arguments
@@ -14,7 +14,7 @@ local M = {
             ]
         ) @call
     ]]),
-    pipeline = vim.treesitter.parse_query('r', [[
+    pipeline = vim.treesitter.query.parse('r', [[
         [
             (binary
                 operator: (special) @_special (#eq? @_special "%>%")

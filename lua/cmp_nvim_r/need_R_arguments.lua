@@ -12,12 +12,16 @@ return function(request)
     local helpers = require"cmp_nvim_r.helpers"
 
     -- Setup syntax tree
-    local req_node = ts.get_node({
-        bufnr = request.context.bufnr,
-        pos = {
+    local request_pos = {
             request.context.cursor.line,
             request.context.cursor.character - 1
-        }
+    }
+
+    if (request_pos[2] < 0) then return resp end
+
+    local req_node = ts.get_node({
+        bufnr = request.context.bufnr,
+        pos = request_pos
     }) -- node to left of cursor in insert mode
     -- local language_tree = ts.get_parser(request.context.bufnr, "r")
     -- local syntax_tree = language_tree:parse()

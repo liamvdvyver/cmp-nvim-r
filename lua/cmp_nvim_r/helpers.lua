@@ -152,6 +152,7 @@ end
 
 M.get_call_fields = function(node)
     local ret = {}
+    if (node == nil) then return ret end
     local func_node = node:field("function")[1]
 
     if func_node:type() == "identifier" then
@@ -197,6 +198,7 @@ end
 
 M.get_data_args = function(node, bufnr)
     local ret = {}
+    if (node == nil) then return ret end
     for _, captures, _ in queries.data_arg:iter_matches(node, bufnr) do
         if captures[3] == node then table.insert(ret, captures[2]) end
     end
